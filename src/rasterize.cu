@@ -19,13 +19,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #define blockSize 256
-#define ADDLIGHT 1
-#define TEXTURE 0
+
+// Toggle features
+#define LIGHTING 1
+#define TEXTURE 1
 #define BILINEAR 0
 #define PERSPECTIVE 0
 #define POINTCLOUD 20
-#define POINTS 1
-#define LINES 1
+#define POINTS 0
+#define LINE 0
 
 namespace {
 
@@ -165,7 +167,7 @@ void render(int w, int h, Fragment *fragmentBuffer, glm::vec3 *framebuffer) {
 
 		// TODO: add your fragment shader code here
         framebuffer[index] = fragmentBuffer[index].color;
-#if ADDLIGHT
+#if LIGHTING
         glm::vec3 light = glm::normalize(glm::vec3(1, 2, 3));
         framebuffer[index] *= glm::dot(light, fragmentBuffer[index].eyeNor);
 #endif
@@ -731,60 +733,89 @@ void _primitiveAssembly(int numIndices, int curPrimitiveBeginId, Primitive* dev_
 	
 }
 
+__device__
+void kernRasterizeExtraPrims(glm::vec3& pos1, glm::vec3 pos2, glm::vec3& color, int width, int height, Fragment* fragmentbuffer) {
+	int index;
+	glm::vec3 dist = glm::abs(pos1 - pos2);
+	if (dist.x > 0 && dist.y > 0) {
+		int len = glm::max(dist.x, dist.y);
+#if POINTS
+		for (float i = 0; i <= len; i += POINTCLOUD) {
+#else
+		for (float i = 0; i <= len; i++) {
+#endif
+			glm::vec3 point = ((1.0f - (i / len)) * pos1 + (i / len) * pos2);
+			index = (int)(point.x) + (int)(point.y) * width;
+			fragmentbuffer[index].color = color;
+		}
+	}
+}
+
 __global__           
 void kernRasterize(int n, Primitive* primitives, Fragment* fragmentbuffer, int* depthsbuffer, int width, int height) {
     int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if (index >= n) {
+		return;
+	}
 
-    if (index < n) {
-        Primitive& prim = primitives[index];
-        VertexOut& outVertex = prim.v[0];
+	Primitive& prim = primitives[index];
 
-        glm::vec3 tri[3] = {
-            glm::vec3(prim.v[0].pos),
-            glm::vec3(prim.v[1].pos),
-            glm::vec3(prim.v[2].pos)
-        };
+	glm::vec3 tri[3] = {
+		glm::vec3(prim.v[0].pos),
+		glm::vec3(prim.v[1].pos),
+		glm::vec3(prim.v[2].pos)
+	};
 
-        AABB aabb = getAABBForTriangle(tri);
-        if (aabb.min.x < 0 || aabb.max.x > width - 1 || aabb.min.y < 0 || aabb.max.y > height - 1) {
-            return;
-        }
+	AABB aabb = getAABBForTriangle(tri);
+	if (aabb.min.x < 0 || aabb.max.x > width - 1 || aabb.min.y < 0 || aabb.max.y > height - 1) {
+		return;
+	}
 
-        int fixedDepth;
-        for (int x = aabb.min.x; x <= aabb.max.x; x++) {
-            for (int y = aabb.min.y; y <= aabb.max.y; y++) {
-                int pid = x + y * width;
+	int fixedDepth;
+	for (int x = aabb.min.x; x <= aabb.max.x; x++) {
+		for (int y = aabb.min.y; y <= aabb.max.y; y++) {
+			int pid = x + y * width;
 
-                glm::vec3 bcc = calculateBarycentricCoordinate(tri, glm::vec2(x, y));
-                if (isBarycentricCoordInBounds(bcc)) {
-                    float z = getZAtCoordinate(bcc, tri);
-                    fixedDepth = -(int)INT_MAX * z;
-                    atomicMin(&depthsbuffer[pid], fixedDepth);
+			glm::vec3 bcc = calculateBarycentricCoordinate(tri, glm::vec2(x, y));
+			if (isBarycentricCoordInBounds(bcc)) {
+				float z = getZAtCoordinate(bcc, tri);
+				fixedDepth = -(int)INT_MAX * z;
+				atomicMin(&depthsbuffer[pid], fixedDepth);
 
-                    if (depthsbuffer[pid] == fixedDepth) {
-                        Fragment& frag = fragmentbuffer[pid];
+				if (depthsbuffer[pid] == fixedDepth) {
+					Fragment& frag = fragmentbuffer[pid];
 
-                        frag.color = bcc.x * prim.v[0].col + bcc.y * prim.v[1].col + bcc.z * prim.v[2].col;
-                        frag.eyePos = bcc.x * prim.v[0].eyePos + bcc.y * prim.v[1].eyePos + bcc.z * prim.v[2].eyePos;
-                        frag.eyeNor = bcc.x * prim.v[0].eyeNor + bcc.y * prim.v[1].eyeNor + bcc.z * prim.v[2].eyeNor;
+					frag.color = bcc.x * prim.v[0].col + bcc.y * prim.v[1].col + bcc.z * prim.v[2].col;
+					frag.eyePos = bcc.x * prim.v[0].eyePos + bcc.y * prim.v[1].eyePos + bcc.z * prim.v[2].eyePos;
+					frag.eyeNor = bcc.x * prim.v[0].eyeNor + bcc.y * prim.v[1].eyeNor + bcc.z * prim.v[2].eyeNor;
 #if TEXTURE
-                        frag.dev_diffuseTex = outVertex.dev_diffuseTex;
-                        frag.texWidth = outVertex.texWidth;
-                        frag.texHeight = outVertex.texHeight;
-                        frag.tex = outVertex.tex;
+					frag.dev_diffuseTex = prim.v[0].dev_diffuseTex;
+					frag.texWidth = prim.v[0].texWidth;
+					frag.texHeight = prim.v[0].texHeight;
+					frag.tex = prim.v[0].tex;
 #if PERSPECTIVE
-						glm::vec3 u_a = glm::vec3(bcc.x / prim.v[0].eyePos.z, bcc.y / prim.v[1].eyePos.z, bcc.z / prim.v[2].eyePos.z);
-						frag.texcoord0 = ((u_a.x * prim.v[0].texcoord0) + (u_a.y * prim.v[1].texcoord0) + (u_a.z * prim.v[2].texcoord0))
-											/ (u_a.x + u_a.y + u_a.z);
+					glm::vec3 u_a = glm::vec3(bcc.x / prim.v[0].eyePos.z, bcc.y / prim.v[1].eyePos.z, bcc.z / prim.v[2].eyePos.z);
+					frag.texcoord0 = ((u_a.x * prim.v[0].texcoord0) + (u_a.y * prim.v[1].texcoord0) + (u_a.z * prim.v[2].texcoord0))
+						/ (u_a.x + u_a.y + u_a.z);
 #else
-						frag.texcoord0 = bcc.x * prim.v[0].texcoord0 + bcc.y * prim.v[1].texcoord0 + bcc.z * prim.v[2].texcoord0;
+					frag.texcoord0 = bcc.x * prim.v[0].texcoord0 + bcc.y * prim.v[1].texcoord0 + bcc.z * prim.v[2].texcoord0;
 #endif
 #endif
-                    }
-                }
-            }
-        }
-    }
+				}
+			}
+		}
+	}
+
+#if POINTS || LINE
+	if (prim.primitiveType == TINYGLTF_MODE_POINTS) {
+		glm::vec3 color = prim.v[0].col;
+		color += prim.v[0].eyeNor;
+		color = glm::normalize(color);
+
+		kernRasterizeExtraPrims(glm::vec3(prim.v[0].pos), glm::vec3(prim.v[1].pos), color, width, height, fragmentbuffer);
+		kernRasterizeExtraPrims(glm::vec3(prim.v[2].pos), glm::vec3(prim.v[0].pos), color, width, height, fragmentbuffer);
+	}
+#endif
 }
 
 __device__ __host__
