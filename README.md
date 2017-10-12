@@ -5,14 +5,67 @@ CUDA Rasterizer
 
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Ricky Rajani
+* Tested on: Windows 7, i7-6700 @ 3.40GHz 16GB, NVIDIA Quadro K620 (Moore 100C Lab)
 
-### (TODO: Your README)
+This project implements a simplified rasterized graphics pipeline, similar to the OpenGL pipeline, using CUDA.
 
-*DO NOT* leave the README to the last minute! It is a crucial part of the
-project, and we will not be able to grade you without a good README.
+### Core Features:
+- Vertex assembly
+- Vertex shading
+- Primitive assembly
+- Depth test
+- Rasterization
+- Race avoidance using atomic function
+- Fragment shading with lambert lighting
+- Framebuffer
 
+### Extra Features:
+- UV texture mapping with bilinear texture filtering and perspective correct texture coordinates
+- Support for rasterizing additional primitives: lines and points
+
+# Samples
+
+- Cow
+- Duck normal
+- 2 cylinder enginek
+
+Points
+- duck - 20
+- duck - 50
+- Performance Analysis (timing for kernRasterize)
+
+Lines
+- truck
+- cow
+- Performance Analysis (timing for kernRasterize)
+
+UV Texture Mapping
+- Cesium Milk Truck
+- Duck
+- Performance Analysis (timing for kernTextureMap)
+
+Bilinear Texture filtering
+- Checkerboard with
+- Checkerboard without
+- Performance Analysis (timing)
+
+Perspective Correction
+- Checkerboard with
+- Checkerboard without
+- Performance Analysis (timing)
+
+# Performance Analysis
+Pipeline Timing: Box
+Pipeline Timing: Duck
+Pipeline Timing: Cow
+
+- Number of primitives
+- Vertex Transform and Assembly
+- Primitive Assembly
+- initDepth
+- kernRasterize
+- Render
 
 ### Credits
 
