@@ -38,20 +38,29 @@ Demos of scenes using additional primitives
 
 Point cloud: 50
 
-Duck | Cow | Truck
-:-------------------------------: | :-------------------------------: | :-------------------------------:
-![](renders/duck_points.PNG) | ![](renders/cow_points.PNG) | ![](renders/truck_points.PNG)
+Duck
 
-- Performance Analysis (timing for kernRasterize)
+![](renders/duck_points.PNG)
+
+Cow
+
+![](renders/cow_points.PNG)
+
+Truck
+
+![](renders/truck_points.PNG)
 
 Duck | Truck
 :-------------------------------: | :-------------------------------:
 ![](renders/duck_lines.PNG) | ![](renders/truck_lines.PNG)
 
+
 ![](renders/rasterize-graph.PNG)
+
 // TODO: add performance analysis
 
 Demos of scenes using UV texture mapping
+
 
 Duck | Truck
 :-------------------------------: | :-------------------------------:
@@ -75,6 +84,8 @@ kernRasterize with Perspective Correction	66
 ![](renders/fps_graph.PNG)
 
 ![](renders/pipeline_timing_graph.PNG)
+
+*CMakeLists modified to include 'common.h' for recording performance time
 
 ### Credits
 
