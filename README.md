@@ -1,8 +1,6 @@
 CUDA Rasterizer
 ===============
 
-[CLICK ME FOR INSTRUCTION OF THIS PROJECT](./INSTRUCTION.md)
-
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture, Project 4**
 
 * Ricky Rajani
@@ -26,46 +24,57 @@ This project implements a simplified rasterized graphics pipeline, similar to th
 
 # Samples
 
-- Cow
-- Duck normal
-- 2 cylinder enginek
+Demos of scenes using basic rasterization pipeline using Lambert lighting.
 
-Points
-- duck - 20
-- duck - 50
+Cow | Duck
+:-------------------------------: | :-------------------------------:
+![](renders/cow_normal.PNG) | ![](renders/duck_normal.PNG)
+
+Engine | Truck
+:-------------------------------: | :-------------------------------:
+![](renders/engine_normal.PNG) | ![](renders/truck_normal.PNG)
+
+Demos of scenes using additional primitives
+
+Point cloud: 50
+
+Duck | Cow | Truck
+:-------------------------------: | :-------------------------------: | :-------------------------------:
+![](renders/duck_points.PNG) | ![](renders/cow_points.PNG) | ![](renders/truck_points.PNG)
+
 - Performance Analysis (timing for kernRasterize)
 
-Lines
-- truck
-- cow
-- Performance Analysis (timing for kernRasterize)
+Duck | Truck
+:-------------------------------: | :-------------------------------:
+![](renders/duck_lines.PNG) | ![](renders/truck_lines.PNG)
 
-UV Texture Mapping
-- Cesium Milk Truck
-- Duck
-- Performance Analysis (timing for kernTextureMap)
+![](renders/rasterize-graph.PNG)
+// TODO: add performance analysis
 
-Bilinear Texture filtering
-- Checkerboard with
-- Checkerboard without
-- Performance Analysis (timing)
+Demos of scenes using UV texture mapping
 
-Perspective Correction
-- Checkerboard with
-- Checkerboard without
-- Performance Analysis (timing)
+Duck | Truck
+:-------------------------------: | :-------------------------------:
+![](renders/duck_texture.PNG) | ![](renders/truck_texture.PNG)
+
+
+Checkerboard | Checkerboard with Bilinear Filtering | Checkerboard with Perspective Correction
+:-------------------------------: | :-------------------------------: | :-------------------------------:
+![](renders/checkerboard-normal.PNG) | ![](renders/checkerboard-bilinear.PNG) | ![](renders/checkerboard-perspective.PNG)
+
+// TODO: Add performance analysis
+
+Timing for Checkerboard	
+kernTextureMap	0.88
+kernTextureMap with Bilinear Texture Filtering	1.02
+kernRasterize	90
+kernRasterize with Perspective Correction	66
 
 # Performance Analysis
-Pipeline Timing: Box
-Pipeline Timing: Duck
-Pipeline Timing: Cow
 
-- Number of primitives
-- Vertex Transform and Assembly
-- Primitive Assembly
-- initDepth
-- kernRasterize
-- Render
+![](renders/fps_graph.PNG)
+
+![](renders/pipeline_timing_graph.PNG)
 
 ### Credits
 
