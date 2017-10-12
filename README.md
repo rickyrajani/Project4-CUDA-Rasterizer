@@ -19,8 +19,8 @@ This project implements a simplified rasterized graphics pipeline, similar to th
 - Framebuffer
 
 ### Extra Features:
-- UV texture mapping with bilinear texture filtering and perspective correct texture coordinates
 - Support for rasterizing additional primitives: lines and points
+- UV texture mapping with bilinear texture filtering and perspective correct texture coordinates
 
 # Samples
 
