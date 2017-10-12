@@ -32,7 +32,7 @@
 #define PERSPECTIVE 0
 
 #define POINTCLOUD 50
-#define POINTS 1
+#define POINTS 0
 #define LINE 0
 
 using StreamCompaction::Common::PerformanceTimer;
@@ -892,6 +892,7 @@ void rasterize(uchar4 *pbo, const glm::mat4 & MVP, const glm::mat4 & MV, const g
     dim3 blockCount2d((width  - 1) / blockSize2d.x + 1,
 		(height - 1) / blockSize2d.y + 1);
     dim3 numBlocksPrimitives((totalNumPrimitives + blockSize - 1) / blockSize);
+	//std::cout << totalNumPrimitives << std::endl;
 
 	// Execute your rasterization pipeline here
 	// (See README for rasterization pipeline outline.)
@@ -904,6 +905,7 @@ void rasterize(uchar4 *pbo, const glm::mat4 & MVP, const glm::mat4 & MV, const g
 		auto it = mesh2PrimitivesMap.begin();
 		auto itEnd = mesh2PrimitivesMap.end();
 
+		//timer().startGpuTimer();
 		for (; it != itEnd; ++it) {
 			auto p = (it->second).begin();	// each primitive
 			auto pEnd = (it->second).end();
@@ -927,22 +929,36 @@ void rasterize(uchar4 *pbo, const glm::mat4 & MVP, const glm::mat4 & MV, const g
 
 		checkCUDAError("Vertex Processing and Primitive Assembly");
 	}
-	
+	//timer().endGpuTimer();
+	//std::cout << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
+
 	cudaMemset(dev_fragmentBuffer, 0, width * height * sizeof(Fragment));
+	//timer().startGpuTimer();
 	initDepth << <blockCount2d, blockSize2d >> >(width, height, dev_depth);
-	
+	//timer().endGpuTimer();
+	//std::cout << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
+
 	// TODO: rasterize
+	//timer().startGpuTimer();
     kernRasterize << <numBlocksPrimitives, blockSize >> >(totalNumPrimitives, dev_primitives, dev_fragmentBuffer, dev_depth, width, height);
+	//timer().endGpuTimer();
+	//std::cout << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
     checkCUDAError("kernRasterize failed");
 
 #if TEXTURE
 	// UV Texture Map
+	//timer().startGpuTimer();
     kernTextureMap << <blockCount2d, blockSize2d >> >(width, height, dev_fragmentBuffer);
+	//timer().endGpuTimer();
+	//std::cout << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
     checkCUDAError("kernTextureMap failed");
 #endif
 
     // Copy depthbuffer colors into framebuffer
+	//timer().startGpuTimer();
 	render << <blockCount2d, blockSize2d >> >(width, height, dev_fragmentBuffer, dev_framebuffer);
+	//timer().endGpuTimer();
+	//std::cout << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
 	checkCUDAError("fragment shader");
     // Copy framebuffer into OpenGL buffer for OpenGL previewing
     sendImageToPBO<<<blockCount2d, blockSize2d>>>(pbo, width, height, dev_framebuffer);
