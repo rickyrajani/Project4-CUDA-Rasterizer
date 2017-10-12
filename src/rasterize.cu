@@ -11,6 +11,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <thrust/random.h>
+#include "common.h"
 #include <util/checkCUDAError.h>
 #include <util/tiny_gltf_loader.h>
 #include "rasterizeTools.h"
@@ -21,14 +22,29 @@
 #define blockSize 256
 
 // Toggle features
-// Bilinear texture filtering and perspective correction works with TEXTURE enabled
+
+// Lambert lighting
 #define LIGHTING 1
+
+// Bilinear texture filtering and perspective correction work with TEXTURE enabled
 #define TEXTURE 0
 #define BILINEAR 0
 #define PERSPECTIVE 0
+
 #define POINTCLOUD 50
-#define POINTS 0
-#define LINE 1
+#define POINTS 1
+#define LINE 0
+
+using StreamCompaction::Common::PerformanceTimer;
+PerformanceTimer& timer()
+{
+	static PerformanceTimer timer;
+	return timer;
+}
+
+// timer().startGpuTimer();
+// timer().endGpuTimer();
+// cout << timer().getGpuElapsedTimeForPreviousOperation() << endl;
 
 namespace {
 
@@ -725,7 +741,7 @@ void _primitiveAssembly(int numIndices, int curPrimitiveBeginId, Primitive* dev_
                 = primitive.diffuseTexWidth;
             dev_primitives[pid + curPrimitiveBeginId].texHeight
                 = primitive.diffuseTexHeight;
-#else
+#elif !POINTS && !LINE
 			dev_primitives[pid + curPrimitiveBeginId].v[iid % (int)primitive.primitiveType].col
 				= glm::vec3(1.0f, 1.0f, 1.0f); // default is white
 #endif

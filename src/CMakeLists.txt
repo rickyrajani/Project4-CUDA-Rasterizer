@@ -1,4 +1,5 @@
 set(SOURCE_FILES
+    "common.h"
     "rasterize.cu"
     "rasterize.h"
     "rasterizeTools.h"
