@@ -24,7 +24,7 @@ This project implements a simplified rasterized graphics pipeline, similar to th
 
 # Samples
 
-Demos of scenes using basic rasterization pipeline using Lambert lighting.
+#### Demos of scenes using basic rasterization pipeline using Lambert lighting
 
 Cow | Duck
 :-------------------------------: | :-------------------------------:
@@ -34,8 +34,7 @@ Engine | Truck
 :-------------------------------: | :-------------------------------:
 ![](renders/engine_normal.PNG) | ![](renders/truck_normal.PNG)
 
-Demos of scenes using additional primitives
-
+### Demos of scenes using additional primitives
 Point cloud: 50
 
 Duck
@@ -46,10 +45,6 @@ Cow
 
 ![](renders/cow_points.PNG)
 
-Truck
-
-![](renders/truck_points.PNG)
-
 Duck | Truck
 :-------------------------------: | :-------------------------------:
 ![](renders/duck_lines.PNG) | ![](renders/truck_lines.PNG)
@@ -59,8 +54,7 @@ Duck | Truck
 
 // TODO: add performance analysis
 
-Demos of scenes using UV texture mapping
-
+#### Demos of scenes using UV texture mapping
 
 Duck | Truck
 :-------------------------------: | :-------------------------------:
