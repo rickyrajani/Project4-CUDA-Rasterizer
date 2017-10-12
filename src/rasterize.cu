@@ -21,13 +21,14 @@
 #define blockSize 256
 
 // Toggle features
+// Bilinear texture filtering and perspective correction works with TEXTURE enabled
 #define LIGHTING 1
-#define TEXTURE 1
+#define TEXTURE 0
 #define BILINEAR 0
 #define PERSPECTIVE 0
-#define POINTCLOUD 20
+#define POINTCLOUD 50
 #define POINTS 0
-#define LINE 0
+#define LINE 1
 
 namespace {
 
@@ -168,7 +169,7 @@ void render(int w, int h, Fragment *fragmentBuffer, glm::vec3 *framebuffer) {
 		// TODO: add your fragment shader code here
         framebuffer[index] = fragmentBuffer[index].color;
 #if LIGHTING
-        glm::vec3 light = glm::normalize(glm::vec3(1, 2, 3));
+        glm::vec3 light = glm::normalize(glm::vec3(1, 1, 1));
         framebuffer[index] *= glm::dot(light, fragmentBuffer[index].eyeNor);
 #endif
     }
@@ -669,6 +670,9 @@ void _vertexTransformAndAssembly(
 		// Then divide the pos by its w element to transform into NDC space
 		// Finally transform x and y to viewport space
 
+		// TODO: Apply vertex assembly here
+		// Assemble all attribute arrays into the primitive array
+
         VertexAttributePosition& currPos = primitive.dev_position[vid];
         VertexOut& outVertex = primitive.dev_verticesOut[vid];
 
@@ -677,13 +681,11 @@ void _vertexTransformAndAssembly(
         ndc.x = (1.0f - ndc.x) * width / 2.0f;
         ndc.y = (1.0f - ndc.y) * width / 2.0f;
 
-        outVertex.pos = ndc;
-        outVertex.eyeNor = glm::normalize(MV_normal * primitive.dev_normal[vid]);
-        outVertex.eyePos = glm::vec3(MV * glm::vec4(currPos, 1.0f));
+		outVertex.pos = ndc;
+		outVertex.eyeNor = glm::normalize(MV_normal * primitive.dev_normal[vid]);
+		outVertex.eyePos = glm::vec3(MV * glm::vec4(currPos, 1.0f));
 
-        // TODO: Apply vertex assembly here
-        // Assemble all attribute arraies into the primitive array
-
+#if TEXTURE
         if (primitive.dev_diffuseTex != NULL) {
             outVertex.texcoord0 = primitive.dev_texcoord0[vid];
         }
@@ -691,6 +693,7 @@ void _vertexTransformAndAssembly(
         outVertex.texWidth = primitive.diffuseTexWidth;
         outVertex.texHeight = primitive.diffuseTexHeight;
         outVertex.tex = primitive.tex;
+#endif
 
 	}
 }
@@ -734,18 +737,17 @@ void _primitiveAssembly(int numIndices, int curPrimitiveBeginId, Primitive* dev_
 }
 
 __device__
-void kernRasterizeExtraPrims(glm::vec3& pos1, glm::vec3 pos2, glm::vec3& color, int width, int height, Fragment* fragmentbuffer) {
-	int index;
+void kernRasterizeExtraPrims(int width, int height, glm::vec3& color, glm::vec3& pos1, glm::vec3 pos2, Fragment* fragmentbuffer) {
 	glm::vec3 dist = glm::abs(pos1 - pos2);
 	if (dist.x > 0 && dist.y > 0) {
-		int len = glm::max(dist.x, dist.y);
+		float length = glm::max(dist.x, dist.y);
 #if POINTS
-		for (float i = 0; i <= len; i += POINTCLOUD) {
+		for (float i = 0; i <= length; i += POINTCLOUD) {
 #else
-		for (float i = 0; i <= len; i++) {
+		for (float i = 0; i <= length; i++) {
 #endif
-			glm::vec3 point = ((1.0f - (i / len)) * pos1 + (i / len) * pos2);
-			index = (int)(point.x) + (int)(point.y) * width;
+			glm::vec3 point = ((1.0f - (i / length)) * pos1 + (i / length) * pos2);
+			int index = (int)(point.x) + (int)(point.y) * width;
 			fragmentbuffer[index].color = color;
 		}
 	}
@@ -771,19 +773,18 @@ void kernRasterize(int n, Primitive* primitives, Fragment* fragmentbuffer, int* 
 		return;
 	}
 
-	int fixedDepth;
 	for (int x = aabb.min.x; x <= aabb.max.x; x++) {
 		for (int y = aabb.min.y; y <= aabb.max.y; y++) {
-			int pid = x + y * width;
+			int idx = x + y * width;
 
 			glm::vec3 bcc = calculateBarycentricCoordinate(tri, glm::vec2(x, y));
 			if (isBarycentricCoordInBounds(bcc)) {
 				float z = getZAtCoordinate(bcc, tri);
-				fixedDepth = -(int)INT_MAX * z;
-				atomicMin(&depthsbuffer[pid], fixedDepth);
+				int depth = -INT_MAX * z;
+				atomicMin(&depthsbuffer[idx], depth);
 
-				if (depthsbuffer[pid] == fixedDepth) {
-					Fragment& frag = fragmentbuffer[pid];
+				if (depthsbuffer[idx] == depth) {
+					Fragment& frag = fragmentbuffer[idx];
 
 					frag.color = bcc.x * prim.v[0].col + bcc.y * prim.v[1].col + bcc.z * prim.v[2].col;
 					frag.eyePos = bcc.x * prim.v[0].eyePos + bcc.y * prim.v[1].eyePos + bcc.z * prim.v[2].eyePos;
@@ -812,8 +813,8 @@ void kernRasterize(int n, Primitive* primitives, Fragment* fragmentbuffer, int* 
 		color += prim.v[0].eyeNor;
 		color = glm::normalize(color);
 
-		kernRasterizeExtraPrims(glm::vec3(prim.v[0].pos), glm::vec3(prim.v[1].pos), color, width, height, fragmentbuffer);
-		kernRasterizeExtraPrims(glm::vec3(prim.v[2].pos), glm::vec3(prim.v[0].pos), color, width, height, fragmentbuffer);
+		kernRasterizeExtraPrims(width, height, color, glm::vec3(prim.v[0].pos), glm::vec3(prim.v[1].pos), fragmentbuffer);
+		kernRasterizeExtraPrims(width, height, color, glm::vec3(prim.v[2].pos), glm::vec3(prim.v[0].pos), fragmentbuffer);
 	}
 #endif
 }
@@ -836,12 +837,12 @@ void kernTextureMap(int width, int height, Fragment* fragmentbuffer) {
     int y = (blockIdx.y * blockDim.y) + threadIdx.y;
     int index = x + (y * width);
 
-    if (x >= 0 && y >= 0 && x < width && y < height) {
+    if (x >= 0 && x < width && y >= 0 && y < height) {
         Fragment& frag = fragmentbuffer[index];
         if (frag.dev_diffuseTex != NULL) {
-            float texX = frag.texcoord0.x * (frag.texWidth - 1) + 0.5f;
-            float texY = frag.texcoord0.y * (frag.texHeight - 1) + 0.5f;
-#if TEXTURE && BILINEAR
+            float texX = frag.texcoord0.x * (frag.texWidth - 1.0f) + 0.5f;
+            float texY = frag.texcoord0.y * (frag.texHeight - 1.0f) + 0.5f;
+#if BILINEAR
 			// Reference: https://en.wikipedia.org/wiki/Bilinear_interpolation
 			float u = texX * 1.0f - 0.5f;
 			float v = texY * 1.0f - 0.5f;
@@ -857,7 +858,7 @@ void kernTextureMap(int width, int height, Fragment* fragmentbuffer) {
 			glm::vec3 tex01 = getTexture(x, y + 1, frag.texWidth, frag.texHeight, frag.dev_diffuseTex, frag.tex);
 			glm::vec3 tex11 = getTexture(x + 1, y + 1, frag.texWidth, frag.texHeight, frag.dev_diffuseTex, frag.tex);
 
-			glm::vec3 result = (tex00 * u_opposite + tex10 * u_ratio) * v_opposite + (tex01 * u_opposite + tex11 * v_ratio);
+			glm::vec3 result = (tex00 * u_opposite + tex10 * u_ratio) * v_opposite + (tex01 * u_opposite + tex11 * u_ratio) * v_ratio;
 			frag.color = result;
 #else
 			frag.color = getTexture(texX, texY, frag.texWidth, frag.texHeight, frag.dev_diffuseTex, frag.tex);
@@ -917,8 +918,12 @@ void rasterize(uchar4 *pbo, const glm::mat4 & MVP, const glm::mat4 & MV, const g
 	// TODO: rasterize
     kernRasterize << <numBlocksPrimitives, blockSize >> >(totalNumPrimitives, dev_primitives, dev_fragmentBuffer, dev_depth, width, height);
     checkCUDAError("kernRasterize failed");
+
+#if TEXTURE
+	// UV Texture Map
     kernTextureMap << <blockCount2d, blockSize2d >> >(width, height, dev_fragmentBuffer);
     checkCUDAError("kernTextureMap failed");
+#endif
 
     // Copy depthbuffer colors into framebuffer
 	render << <blockCount2d, blockSize2d >> >(width, height, dev_fragmentBuffer, dev_framebuffer);
