@@ -35,17 +35,13 @@ Engine | Truck
 ![](renders/engine_normal.PNG) | ![](renders/truck_normal.PNG)
 
 ### Demos of scenes using additional primitives
-Duck
-
-![](renders/duck_points_10.PNG)
-
-Cow
-
-![](renders/cow_points_10.PNG)
-
-Duck | Truck
+Duck | Cow
 :-------------------------------: | :-------------------------------:
-![](renders/duck_lines.PNG) | ![](renders/truck_lines.PNG)
+![](renders/duck_points_10.PNG) | ![](renders/cow_points_10.PNG)
+
+Duck | Cow | Truck
+:-------------------------------: | :-------------------------------: | :-------------------------------:
+![](renders/duck_lines.PNG) | ![](renders/cow_lines.PNG) | ![](renders/truck_lines.PNG)
 
 
 ![](renders/rasterize-graph.PNG)
