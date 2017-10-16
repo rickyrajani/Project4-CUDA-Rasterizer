@@ -32,7 +32,7 @@
 #define PERSPECTIVE 0
 
 #define POINTCLOUD 10
-#define POINTS 0
+#define POINTS 1
 #define LINE 0
 
 using StreamCompaction::Common::PerformanceTimer;
