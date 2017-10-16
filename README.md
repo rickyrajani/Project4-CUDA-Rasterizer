@@ -35,15 +35,13 @@ Engine | Truck
 ![](renders/engine_normal.PNG) | ![](renders/truck_normal.PNG)
 
 ### Demos of scenes using additional primitives
-Point cloud: 50
-
 Duck
 
-![](renders/duck_points.PNG)
+![](renders/duck_points_10.PNG)
 
 Cow
 
-![](renders/cow_points.PNG)
+![](renders/cow_points_10.PNG)
 
 Duck | Truck
 :-------------------------------: | :-------------------------------:
