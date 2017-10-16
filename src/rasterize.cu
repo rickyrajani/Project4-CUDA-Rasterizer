@@ -23,7 +23,7 @@
 
 // Toggle features
 
-// Lambert lighting
+// Lambert shading
 #define LIGHTING 1
 
 // Bilinear texture filtering and perspective correction work with TEXTURE enabled
@@ -31,7 +31,7 @@
 #define BILINEAR 0
 #define PERSPECTIVE 0
 
-#define POINTCLOUD 50
+#define POINTCLOUD 10
 #define POINTS 0
 #define LINE 0
 
@@ -185,7 +185,7 @@ void render(int w, int h, Fragment *fragmentBuffer, glm::vec3 *framebuffer) {
 		// TODO: add your fragment shader code here
         framebuffer[index] = fragmentBuffer[index].color;
 #if LIGHTING
-        glm::vec3 light = glm::normalize(glm::vec3(1, 1, 1));
+        glm::vec3 light = glm::normalize(glm::vec3(3, 5, 2));
         framebuffer[index] *= glm::dot(light, fragmentBuffer[index].eyeNor);
 #endif
     }
